@@ -1,71 +1,57 @@
 import numpy as np
+import re
 
-# Initialize constants and variables for analysis
-Npoint = 2000  # Number of data points per cycle
-Qc = 1940.0  # Quality factor
-T_on, T_off, power = 3, 0.5, 200.0  # Timing for power application and the power value
-periode = T_on + T_off  # Total period of one cycle of power application
+# Constants and variables initialization
+Npoint = 2000  # Assuming a fixed number of data points for simplicity; adjust as needed
+Qc = 1940.0
+T_on, T_off, power = 3, 0.5, 200.0
+periode = T_on + T_off
 hs, ds = 5.45, 5.45  # Sample height and diameter in mm
-Vs = np.pi * ds ** 2 * hs / 4.0  # Volume of the sample calculated using the cylinder volume formula
+Vs = np.pi * ds ** 2 * hs / 4.0  # Sample volume
 Vc = 86.69 * 43.18 * 250  # Cavity volume in cubic mm
 Fc = 2.440348  # Resonance frequency
 
-# Print initial calculated values for verification
 print(f"Volume de l'echantillon: {Vs}")
 print(f"Volume de la cavite: {Vc}")
 print(f"Frequence de resonnance a vide Fc: {Fc}")
 
 
-def safe_decode(binary_line, primary='utf-8', fallback='ISO-8859-1'):
+def parse_cycle_data(file):
     """
-    Attempt to decode a binary line using a primary encoding,
-    falling back to a secondary encoding in case of failure.
+    Parses data for a single cycle, extracting measurements and any other relevant information.
+    Adjust this function to capture the specific data format and calculations you need.
     """
-    try:
-        return binary_line.decode(primary)
-    except UnicodeDecodeError:
-        return binary_line.decode(fallback)
-
-
-# Function to handle the reading of Ncycle from the file, with error handling for empty or non-numeric lines
-def read_ncycle(file):
+    data_points = []
     while True:
         line = file.readline()
-        if not line:  # If end of file is reached without finding Ncycle
-            raise ValueError("Ncycle not found in file.")
-        decoded_line = safe_decode(line)
-        parts = decoded_line.strip().split()
-        if parts:  # Checks if the line is not empty
-            try:
-                return int(parts[-1])  # Attempts to return the last part of the line as Ncycle
-            except ValueError:
-                continue  # If conversion to int fails, move to the next line
+        if not line or line.startswith(b'Cycle n'):  # End of cycle or file
+            break
+        # Process line to extract data points, e.g., converting to float, handling special values
+        # This is a placeholder for actual data extraction logic
+        data_points.append(line.strip())
+    return data_points
 
 
-# Open the data file in binary mode to handle potential encoding issues
+# Open the data files
 with open('05_02_2024-11_55', 'rb') as data_file, \
         open('power_vs_time.dat', 'w') as power_file, \
         open('temperature_vs_time.dat', 'w') as temp_file:
-    # Use the read_ncycle function to robustly read and interpret Ncycle from the data file
-    Ncycle = read_ncycle(data_file)
+    cycle_count = 0
+    while True:
+        header_line = data_file.readline()
+        if not header_line:
+            break  # End of file
+        cycle_count += 1
+        # Here, parse each cycle's data
+        cycle_data = parse_cycle_data(data_file)
 
-    # Placeholder for actual data reading process
-    x_values = np.zeros(Npoint)  # Example initialization of x_values
+        # Placeholder: Replace with actual data analysis and processing
+        temperature = 25.0  # Example fixed temperature, replace with actual calculation
 
-    # Process data for each cycle based on Ncycle
-    for cycle in range(Ncycle):
-        # Placeholder for reading y values and temperature for each cycle
-        y_values = np.zeros(Npoint)  # Example initialization of y_values
-        temperature = 25.0  # Example placeholder temperature value
+        # Example of writing to output files based on cycle analysis
+        cycle_time = cycle_count * periode
+        power_file.write(f"{cycle_time}, 0\n")
+        power_file.write(f"{cycle_time + T_off}, {power}\n")
+        temp_file.write(f"{cycle_time}, {temperature}\n")
 
-        # Placeholder for analysis logic such as finding specific points, bandwidth, and quality factor
-
-        # Writing power cycle and temperature data to output files
-        power_file.write(f"{cycle * periode}, 0\n")  # Zero power at cycle start
-        power_file.write(f"{cycle * periode + T_off}, {power}\n")  # Power applied after T_off
-
-        # Write temperature data at the start of each cycle
-        temp_file.write(f"{cycle * periode}, {temperature}\n")
-
-# Indicate completion of analysis and data writing process
 print("Analysis completed and results written to output files.")
